@@ -193,6 +193,7 @@ loginForm.addEventListener("submit", async (event) => {
     const email = adminEmail.value.trim();
     const password = adminPassword.value;
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    console.log("Admin UID:", cred.user?.uid || "(missing uid)");
 
     if (!isAllowedAdmin(cred.user)) {
       await signOut(auth);
@@ -243,6 +244,7 @@ onAuthStateChanged(auth, async (user) => {
     showLogin();
     return;
   }
+  console.log("Authenticated UID:", user.uid);
 
   if (!isAllowedAdmin(user)) {
     await signOut(auth);
