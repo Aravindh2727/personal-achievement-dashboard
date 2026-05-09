@@ -55,10 +55,12 @@ const PAGE_REFRESH_INTERVAL_MS = 120 * 1000;
 let refreshRemainingSeconds = Math.floor(PAGE_REFRESH_INTERVAL_MS / 1000);
 const NETLIFY_IMPORT_ENDPOINT = "/.netlify/functions/import";
 const LOCAL_IMPORT_ENDPOINT = "http://localhost:3000/api/import";
-const AUTO_SYNC_ENABLED =
+const AUTO_SYNC_ENABLED = true;
+const AUTO_SYNC_WRITE_TO_FIRESTORE =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 let autoSyncBlockedByPermissions = false;
 let autoSyncTimerId = null;
+let liveSyncedAchievements = [];
 
 // Fully automatic profile sync sources (edit these with your real profiles)
 const AUTO_SYNC_SOURCES = [
@@ -113,6 +115,28 @@ function getLeetCodeCount(data) {
   const totalItems = leetCodeItems.filter(isLeetCodeTotalRecord);
   const source = totalItems.length > 0 ? totalItems : leetCodeItems;
   return source.reduce((sum, item) => sum + Number(item.count || 0), 0);
+}
+
+function isSameAchievement(a, b) {
+  return String(a.title || "").trim() === String(b.title || "").trim()
+    && String(a.link || "").trim() === String(b.link || "").trim();
+}
+
+function getMergedAchievements(baseData, syncedData) {
+  if (!Array.isArray(syncedData) || syncedData.length === 0) {
+    return baseData;
+  }
+
+  const merged = [...baseData];
+  syncedData.forEach((syncedItem) => {
+    const index = merged.findIndex((item) => isSameAchievement(item, syncedItem));
+    if (index >= 0) {
+      merged[index] = { ...merged[index], ...syncedItem };
+    } else {
+      merged.push(syncedItem);
+    }
+  });
+  return merged;
 }
 
 // Initialize Firebase app + Firestore
@@ -176,7 +200,8 @@ function startRealtimeListener() {
 
 // Render everything based on selected filter type
 function renderDashboard(filterType) {
-  const visibleData = getVisibleAchievements(allAchievements);
+  const mergedData = getMergedAchievements(allAchievements, liveSyncedAchievements);
+  const visibleData = getVisibleAchievements(mergedData);
   let filteredData = visibleData;
   if (filterType === "Coding") {
     filteredData = visibleData.filter((item) => {
@@ -538,10 +563,7 @@ async function syncSource(source) {
   }
 
   const result = await response.json();
-  const items = (result.achievements || []).map(normalizeAchievement).filter(isValidAchievement);
-  for (const item of items) {
-    await upsertAchievement(item);
-  }
+  return (result.achievements || []).map(normalizeAchievement).filter(isValidAchievement);
 }
 
 async function runAutoSync() {
@@ -552,9 +574,17 @@ async function runAutoSync() {
     return;
   }
 
+  const syncedItems = [];
   for (const source of AUTO_SYNC_SOURCES) {
     try {
-      await syncSource(source);
+      const items = await syncSource(source);
+      syncedItems.push(...items);
+
+      if (AUTO_SYNC_WRITE_TO_FIRESTORE) {
+        for (const item of items) {
+          await upsertAchievement(item);
+        }
+      }
     } catch (error) {
       const message = String(error?.message || error || "");
       const isPermissionError =
@@ -574,6 +604,9 @@ async function runAutoSync() {
       console.warn(`Auto sync warning for ${source.url}:`, message);
     }
   }
+
+  liveSyncedAchievements = syncedItems;
+  renderDashboard(currentFilter);
 }
 
 function startAutoSync() {
