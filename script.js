@@ -62,6 +62,7 @@ let autoSyncBlockedByPermissions = false;
 let autoSyncTimerId = null;
 let liveSyncedAchievements = [];
 let hasTriggeredPostLoadSync = false;
+let autoSyncInProgress = false;
 
 // Fully automatic profile sync sources (edit these with your real profiles)
 const AUTO_SYNC_SOURCES = [
@@ -665,41 +666,57 @@ async function runAutoSync() {
   if (autoSyncBlockedByPermissions) {
     return;
   }
-
-  const syncSources = getAutoSyncSources();
-  const syncedItems = [];
-  for (const source of syncSources) {
-    try {
-      const items = await syncSource(source);
-      syncedItems.push(...items);
-
-      if (AUTO_SYNC_WRITE_TO_FIRESTORE) {
-        for (const item of items) {
-          await upsertAchievement(item);
-        }
-      }
-    } catch (error) {
-      const message = String(error?.message || error || "");
-      const isPermissionError =
-        message.toLowerCase().includes("missing or insufficient permissions") ||
-        message.toLowerCase().includes("permission-denied");
-
-      if (isPermissionError) {
-        autoSyncBlockedByPermissions = true;
-        if (autoSyncTimerId) {
-          clearInterval(autoSyncTimerId);
-          autoSyncTimerId = null;
-        }
-        console.warn("Auto sync stopped: Firestore write permission denied.");
-        break;
-      }
-
-      console.warn(`Auto sync warning for ${source.url}:`, message);
-    }
+  if (autoSyncInProgress) {
+    return;
   }
+  autoSyncInProgress = true;
 
-  liveSyncedAchievements = syncedItems;
-  renderDashboard(currentFilter);
+  try {
+    const syncSources = getAutoSyncSources();
+    const syncedItems = [];
+    let hadSuccessfulSync = false;
+
+    for (const source of syncSources) {
+      try {
+        const items = await syncSource(source);
+        if (items.length > 0) {
+          hadSuccessfulSync = true;
+        }
+        syncedItems.push(...items);
+
+        if (AUTO_SYNC_WRITE_TO_FIRESTORE) {
+          for (const item of items) {
+            await upsertAchievement(item);
+          }
+        }
+      } catch (error) {
+        const message = String(error?.message || error || "");
+        const isPermissionError =
+          message.toLowerCase().includes("missing or insufficient permissions") ||
+          message.toLowerCase().includes("permission-denied");
+
+        if (isPermissionError) {
+          autoSyncBlockedByPermissions = true;
+          if (autoSyncTimerId) {
+            clearInterval(autoSyncTimerId);
+            autoSyncTimerId = null;
+          }
+          console.warn("Auto sync stopped: Firestore write permission denied.");
+          break;
+        }
+
+        console.warn(`Auto sync warning for ${source.url}:`, message);
+      }
+    }
+
+    // Never wipe fresh UI data with empty/failed sync results.
+    if (hadSuccessfulSync && syncedItems.length > 0) {
+      liveSyncedAchievements = syncedItems;
+      renderDashboard(currentFilter);
+    }
+  } finally {
+    autoSyncInProgress = false;
+  }
 }
 
 function startAutoSync() {
