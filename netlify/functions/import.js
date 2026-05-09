@@ -44,6 +44,16 @@ function extractUsernameFromUrl(urlString) {
   return "";
 }
 
+function pickNumber(...values) {
+  for (const value of values) {
+    const num = Number(value);
+    if (Number.isFinite(num) && num >= 0) {
+      return num;
+    }
+  }
+  return 0;
+}
+
 async function importFromLeetCode(urlString) {
   const username = extractUsernameFromUrl(urlString);
   if (!username) throw new Error("Could not detect LeetCode username from URL.");
@@ -138,8 +148,16 @@ async function importFromHackerRank(urlString) {
 
   const result = await response.json();
   const model = result?.model || {};
+  const solvedCount = pickNumber(
+    model.total_solved_challenges,
+    model.solved_challenges,
+    model.solvedChallenges,
+    model.badges_count,
+    model.badgesCount,
+    1
+  );
 
-  return [{ type: "Project", title: `HackerRank Profile - ${model.username || username}`, count: 1, link: `https://www.hackerrank.com/${username}` }];
+  return [{ type: "Project", title: `HackerRank Profile - ${model.username || username}`, count: solvedCount, link: `https://www.hackerrank.com/${username}` }];
 }
 
 async function importFromGitHub(urlString) {
@@ -161,6 +179,14 @@ async function importFromGitHub(urlString) {
     totalRepos += repos.length;
     if (repos.length < 100) break;
     page += 1;
+  }
+
+  if (totalRepos === 0) {
+    const profileResponse = await fetch(`https://api.github.com/users/${username}`, { headers });
+    if (profileResponse.ok) {
+      const profile = await profileResponse.json();
+      totalRepos = pickNumber(profile.public_repos, totalRepos);
+    }
   }
 
   return [{ type: "Project", title: `GitHub Public Repositories - ${username}`, count: totalRepos, link: `https://github.com/${username}` }];
