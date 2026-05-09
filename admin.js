@@ -12,6 +12,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -104,10 +105,64 @@ function subscribeAchievements() {
         </div>
         <div class="achievement-actions">
           <a class="achievement-link" href="${item.link || "#"}" target="_blank" rel="noopener noreferrer">View Link</a>
+          <button class="submit-btn edit-btn" type="button" data-id="${item.id}">Edit</button>
           <button class="delete-btn" type="button" data-id="${item.id}">Delete</button>
         </div>
       `;
       adminList.appendChild(row);
+    });
+
+    const editButtons = adminList.querySelectorAll(".edit-btn");
+    editButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.getAttribute("data-id");
+        if (!id) return;
+
+        const current = items.find((item) => item.id === id);
+        if (!current) return;
+
+        const nextType = window.prompt(
+          "Type (Certificate / LeetCode / Project)",
+          String(current.type || "")
+        );
+        if (nextType === null) return;
+
+        const nextTitle = window.prompt("Title", String(current.title || ""));
+        if (nextTitle === null) return;
+
+        const nextCountRaw = window.prompt("Count (0 or more)", String(Number(current.count || 0)));
+        if (nextCountRaw === null) return;
+        const nextCount = Number(nextCountRaw);
+        if (!Number.isFinite(nextCount) || nextCount < 0) {
+          adminMessage.textContent = "Count must be 0 or more.";
+          return;
+        }
+
+        const nextLink = window.prompt("Link (https://...)", String(current.link || ""));
+        if (nextLink === null) return;
+
+        const normalizedType = String(nextType).trim();
+        const normalizedTitle = String(nextTitle).trim();
+        const normalizedLink = String(nextLink).trim();
+
+        if (!normalizedType || !normalizedTitle || !normalizedLink) {
+          adminMessage.textContent = "Type, title, and link are required.";
+          return;
+        }
+
+        try {
+          await updateDoc(doc(db, "achievements", id), {
+            type: normalizedType,
+            title: normalizedTitle,
+            count: nextCount,
+            link: normalizedLink,
+          });
+          adminMessage.textContent = "Achievement updated.";
+        } catch (error) {
+          adminMessage.textContent = "Update failed. Check Firestore rules.";
+          console.error(error);
+        }
+      });
     });
 
     const deleteButtons = adminList.querySelectorAll(".delete-btn");
