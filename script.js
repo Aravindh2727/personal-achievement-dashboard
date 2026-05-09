@@ -61,6 +61,7 @@ const AUTO_SYNC_WRITE_TO_FIRESTORE =
 let autoSyncBlockedByPermissions = false;
 let autoSyncTimerId = null;
 let liveSyncedAchievements = [];
+let hasTriggeredPostLoadSync = false;
 
 // Fully automatic profile sync sources (edit these with your real profiles)
 const AUTO_SYNC_SOURCES = [
@@ -254,6 +255,11 @@ function startRealtimeListener() {
       allAchievements = data;
       renderDashboard(currentFilter);
       errorMessage.textContent = "";
+
+      if (!hasTriggeredPostLoadSync) {
+        hasTriggeredPostLoadSync = true;
+        runAutoSync();
+      }
     },
     (error) => {
       console.error("Firestore listener error:", error);
