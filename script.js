@@ -55,6 +55,8 @@ const PAGE_REFRESH_INTERVAL_MS = 120 * 1000;
 let refreshRemainingSeconds = Math.floor(PAGE_REFRESH_INTERVAL_MS / 1000);
 const NETLIFY_IMPORT_ENDPOINT = "/.netlify/functions/import";
 const LOCAL_IMPORT_ENDPOINT = "http://localhost:3000/api/import";
+let autoSyncBlockedByPermissions = false;
+let autoSyncTimerId = null;
 
 // Fully automatic profile sync sources (edit these with your real profiles)
 const AUTO_SYNC_SOURCES = [
@@ -544,12 +546,30 @@ async function runAutoSync() {
   if (!db) {
     return;
   }
+  if (autoSyncBlockedByPermissions) {
+    return;
+  }
 
   for (const source of AUTO_SYNC_SOURCES) {
     try {
       await syncSource(source);
     } catch (error) {
-      console.warn("Auto sync warning:", error.message || error);
+      const message = String(error?.message || error || "");
+      const isPermissionError =
+        message.toLowerCase().includes("missing or insufficient permissions") ||
+        message.toLowerCase().includes("permission-denied");
+
+      if (isPermissionError) {
+        autoSyncBlockedByPermissions = true;
+        if (autoSyncTimerId) {
+          clearInterval(autoSyncTimerId);
+          autoSyncTimerId = null;
+        }
+        console.warn("Auto sync stopped: Firestore write permission denied.");
+        break;
+      }
+
+      console.warn(`Auto sync warning for ${source.url}:`, message);
     }
   }
 }
@@ -557,7 +577,7 @@ async function runAutoSync() {
 function startAutoSync() {
   // Run once on load, then periodically.
   runAutoSync();
-  setInterval(runAutoSync, AUTO_SYNC_INTERVAL_MS);
+  autoSyncTimerId = setInterval(runAutoSync, AUTO_SYNC_INTERVAL_MS);
 }
 
 function startPageAutoRefresh() {
