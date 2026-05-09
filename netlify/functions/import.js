@@ -58,6 +58,12 @@ async function importFromLeetCode(urlString) {
               count
             }
           }
+          submitStatsGlobal {
+            acSubmissionNum {
+              difficulty
+              count
+            }
+          }
         }
       }
     `,
@@ -77,11 +83,30 @@ async function importFromLeetCode(urlString) {
 
   const result = await response.json();
   const stats = result?.data?.matchedUser?.submitStats?.acSubmissionNum || [];
+  const globalStats = result?.data?.matchedUser?.submitStatsGlobal?.acSubmissionNum || [];
 
-  const totalSolved = Number(stats.find((entry) => entry.difficulty === "All")?.count || 0);
-  const easySolved = Number(stats.find((entry) => entry.difficulty === "Easy")?.count || 0);
-  const mediumSolved = Number(stats.find((entry) => entry.difficulty === "Medium")?.count || 0);
-  const hardSolved = Number(stats.find((entry) => entry.difficulty === "Hard")?.count || 0);
+  const totalFromStats = Number(stats.find((entry) => entry.difficulty === "All")?.count || 0);
+  const totalFromGlobal = Number(
+    globalStats.find((entry) => entry.difficulty === "All")?.count || 0
+  );
+  const easySolved = Number(
+    globalStats.find((entry) => entry.difficulty === "Easy")?.count ||
+      stats.find((entry) => entry.difficulty === "Easy")?.count ||
+      0
+  );
+  const mediumSolved = Number(
+    globalStats.find((entry) => entry.difficulty === "Medium")?.count ||
+      stats.find((entry) => entry.difficulty === "Medium")?.count ||
+      0
+  );
+  const hardSolved = Number(
+    globalStats.find((entry) => entry.difficulty === "Hard")?.count ||
+      stats.find((entry) => entry.difficulty === "Hard")?.count ||
+      0
+  );
+
+  const totalFromDifficultySplit = easySolved + mediumSolved + hardSolved;
+  const totalSolved = Math.max(totalFromStats, totalFromGlobal, totalFromDifficultySplit);
 
   return [
     {
@@ -227,3 +252,4 @@ exports.handler = async (event) => {
     return json(500, { error: error.message || "Import failed." });
   }
 };
+
