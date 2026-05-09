@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Achievement Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-main">Aravindh's Dashboard</span>
+      <span class="brand-sub">Personal Achievement Tracker</span>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill">Realtime Sync</span>
+      <span class="pill ghost">Personal Mode</span>
+      <a class="pill" href="admin.html">Admin</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero-banner">
+      <div>
+        <span class="tag">Dashboard</span>
+        <h1>My Achievement Dashboard</h1>
+      </div>
+      <p>Real-time tracking for certificates, coding progress, and projects.</p>
+    </section>
+
+    <section class="stats-panels" aria-label="Achievement Stats">
+      <article class="panel students-panel">
+        <h3>Certificates & Projects</h3>
+        <div class="panel-grid two-col">
+          <div class="metric-box">
+            <p class="label">Total Certificates</p>
+            <p id="certificatesCount" class="value dark">0</p>
+          </div>
+          <div class="metric-box">
+            <p class="label">Total Projects</p>
+            <p id="projectsCount" class="value dark">0</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel solved-panel">
+        <h3>Coding & Total Achievements</h3>
+        <div class="panel-grid">
+          <div class="metric-box">
+            <p class="label">Total Coding Problems</p>
+            <p id="codingCount" class="value blue">0</p>
+          </div>
+          <div class="metric-box">
+            <p class="label">Overall Achievements</p>
+            <p id="totalAchievements" class="value green">0</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="filters" aria-label="Filter Achievements">
+      <button class="filter-btn active" data-filter="All">All</button>
+      <button class="filter-btn" data-filter="Certificate">Certificate</button>
+      <button class="filter-btn" data-filter="Coding">Coding</button>
+      <button class="filter-btn" data-filter="Project">Project</button>
+    </section>
+
+    <section class="list-section">
+      <h2>Achievement List</h2>
+      <div id="achievementList" class="achievement-list"></div>
+      <p id="errorMessage" class="error-message" aria-live="polite"></p>
+    </section>
+
+    <section class="charts-section">
+      <h2>Analytics</h2>
+      <div class="charts-grid">
+        <article class="chart-card">
+          <h3>Problems Solved by Category</h3>
+          <canvas id="barChart"></canvas>
+        </article>
+        <article class="chart-card">
+          <h3>Distribution by Type</h3>
+          <canvas id="pieChart"></canvas>
+        </article>
+      </div>
+    </section>
+
+    <footer class="dashboard-footer">
+      <p>Last Updated: <span id="lastUpdatedAt">-</span></p>
+      <p>Auto Refresh In: <span id="refreshCountdown">120</span>s</p>
+    </footer>
+  </main>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

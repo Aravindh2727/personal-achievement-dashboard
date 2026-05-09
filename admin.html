@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - Achievement Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-main">Admin Panel</span>
+      <span class="brand-sub">Personal Achievement Dashboard</span>
+    </div>
+    <div class="topbar-actions">
+      <a class="pill" href="index.html">Back to Dashboard</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="upload-section" id="loginSection">
+      <h2>Admin Login</h2>
+      <form id="loginForm" class="achievement-form">
+        <div class="form-grid">
+          <label>
+            Email
+            <input id="adminEmail" type="email" placeholder="admin@example.com" required />
+          </label>
+          <label>
+            Password
+            <input id="adminPassword" type="password" placeholder="Enter password" required />
+          </label>
+        </div>
+        <button class="submit-btn" type="submit">Login</button>
+      </form>
+      <p id="loginMessage" class="form-message" aria-live="polite"></p>
+    </section>
+
+    <section class="upload-section" id="adminSection" style="display: none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h2>Manage Achievements</h2>
+        <button id="logoutBtn" class="delete-btn" type="button">Logout</button>
+      </div>
+
+      <form id="adminAddForm" class="achievement-form">
+        <div class="form-grid">
+          <label>
+            Type
+            <select id="adminType" required>
+              <option value="">Select type</option>
+              <option value="Certificate">Certificate</option>
+              <option value="LeetCode">LeetCode</option>
+              <option value="Project">Project</option>
+            </select>
+          </label>
+          <label>
+            Title
+            <input id="adminTitle" type="text" placeholder="Title" required />
+          </label>
+          <label>
+            Count
+            <input id="adminCount" type="number" min="0" step="1" placeholder="0" required />
+          </label>
+          <label>
+            Link
+            <input id="adminLink" type="url" placeholder="https://example.com" required />
+          </label>
+        </div>
+        <button class="submit-btn" type="submit">Add Achievement</button>
+      </form>
+      <p id="adminMessage" class="form-message" aria-live="polite"></p>
+
+      <hr class="section-divider" />
+
+      <div id="adminList" class="achievement-list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
