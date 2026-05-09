@@ -116,8 +116,45 @@ function getLeetCodeCount(data) {
 }
 
 function isSameAchievement(a, b) {
-  return String(a.title || "").trim() === String(b.title || "").trim()
-    && String(a.link || "").trim() === String(b.link || "").trim();
+  const aTitle = String(a.title || "").trim();
+  const bTitle = String(b.title || "").trim();
+  const aLink = String(a.link || "").trim();
+  const bLink = String(b.link || "").trim();
+
+  if (aTitle === bTitle && aLink === bLink) {
+    return true;
+  }
+
+  return getProfileIdentity(aLink) === getProfileIdentity(bLink);
+}
+
+function getProfileIdentity(rawLink) {
+  const link = String(rawLink || "").trim();
+  if (!link) return "";
+
+  let parsed;
+  try {
+    parsed = new URL(link.includes("://") ? link : `https://${link}`);
+  } catch (_error) {
+    return link.toLowerCase();
+  }
+
+  const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+  const parts = parsed.pathname.split("/").filter(Boolean);
+  let username = "";
+
+  if (host.includes("leetcode.com")) {
+    const uIndex = parts.findIndex((part) => part === "u");
+    username = uIndex >= 0 ? (parts[uIndex + 1] || "") : (parts[0] || "");
+  } else if (host.includes("github.com") || host.includes("hackerrank.com")) {
+    username = parts[0] || "";
+  } else if (host.includes("linkedin.com")) {
+    username = parts[parts.length - 1] || "";
+  } else {
+    username = parts[0] || "";
+  }
+
+  return `${host}:${username.toLowerCase()}`;
 }
 
 function getMergedAchievements(baseData, syncedData) {
