@@ -37,7 +37,7 @@ function extractUsernameFromUrl(urlString) {
     return parts[0] || "";
   }
 
-  if (url.hostname.includes("hackerrank.com")) return parts[0] || "";
+  if (url.hostname.includes("hackerrank.com")) { const pIndex = parts.findIndex((part) => part === "profile"); if (pIndex !== -1 && parts[pIndex + 1]) return parts[pIndex + 1]; return parts[0] || ""; }
   if (url.hostname.includes("github.com")) return parts[0] || "";
   if (url.hostname.includes("linkedin.com")) return parts[parts.length - 1] || "";
 

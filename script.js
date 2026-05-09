@@ -109,6 +109,27 @@ function getVisibleAchievements(data) {
     });
 }
 
+function dedupeAchievements(data) {
+  const deduped = new Map();
+
+  for (const item of data) {
+    const identity = getProfileIdentity(item.link) || `${String(item.title || "").toLowerCase()}:${String(item.type || "").toLowerCase()}`;
+    const existing = deduped.get(identity);
+
+    if (!existing) {
+      deduped.set(identity, item);
+      continue;
+    }
+
+    // Keep the record with higher count so stale older rows are replaced.
+    if (Number(item.count || 0) >= Number(existing.count || 0)) {
+      deduped.set(identity, { ...existing, ...item });
+    }
+  }
+
+  return Array.from(deduped.values());
+}
+
 function getLeetCodeCount(data) {
   const leetCodeItems = data.filter((item) => item.type === "LeetCode");
   const totalItems = leetCodeItems.filter(isLeetCodeTotalRecord);
@@ -272,7 +293,7 @@ function startRealtimeListener() {
 // Render everything based on selected filter type
 function renderDashboard(filterType) {
   const mergedData = getMergedAchievements(allAchievements, liveSyncedAchievements);
-  const visibleData = getVisibleAchievements(mergedData);
+  const visibleData = dedupeAchievements(getVisibleAchievements(mergedData));
   let filteredData = visibleData;
   if (filterType === "Coding") {
     filteredData = visibleData.filter((item) => {
