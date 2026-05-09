@@ -213,13 +213,36 @@ function getAutoSyncSources() {
     .filter((item) => item.url);
 
   const derived = allAchievements
-    .map((item) => String(item?.link || "").trim())
-    .filter((link) => link && isSyncableProfileLink(link))
-    .map((url) => ({ url, overrideCount: null }));
+    .filter((item) => {
+      const link = String(item?.link || "").trim();
+      return link && isSyncableProfileLink(link);
+    })
+    .map((item) => {
+      const url = String(item?.link || "").trim();
+      const count = Number(item?.count || 0);
+      const linkLower = url.toLowerCase();
+
+      // For platforms where public APIs can be partial (especially LinkedIn/HackerRank),
+      // preserve existing count unless importer returns a better number later.
+      const needsStickyOverride =
+        linkLower.includes("linkedin.com") || linkLower.includes("hackerrank.com");
+
+      return {
+        url,
+        overrideCount: needsStickyOverride && Number.isFinite(count) && count > 0 ? count : null,
+      };
+    });
 
   const unique = new Map();
   [...fixed, ...derived].forEach((item) => {
-    if (!unique.has(item.url)) {
+    const existing = unique.get(item.url);
+    if (!existing) {
+      unique.set(item.url, item);
+      return;
+    }
+    const existingCount = Number(existing.overrideCount);
+    const nextCount = Number(item.overrideCount);
+    if (!Number.isFinite(existingCount) || (Number.isFinite(nextCount) && nextCount > existingCount)) {
       unique.set(item.url, item);
     }
   });
