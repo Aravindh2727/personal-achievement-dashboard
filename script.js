@@ -55,6 +55,8 @@ const PAGE_REFRESH_INTERVAL_MS = 120 * 1000;
 let refreshRemainingSeconds = Math.floor(PAGE_REFRESH_INTERVAL_MS / 1000);
 const NETLIFY_IMPORT_ENDPOINT = "/.netlify/functions/import";
 const LOCAL_IMPORT_ENDPOINT = "http://localhost:3000/api/import";
+const AUTO_SYNC_ENABLED =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 let autoSyncBlockedByPermissions = false;
 let autoSyncTimerId = null;
 
@@ -575,6 +577,10 @@ async function runAutoSync() {
 }
 
 function startAutoSync() {
+  if (!AUTO_SYNC_ENABLED) {
+    return;
+  }
+
   // Run once on load, then periodically.
   runAutoSync();
   autoSyncTimerId = setInterval(runAutoSync, AUTO_SYNC_INTERVAL_MS);
