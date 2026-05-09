@@ -65,9 +65,7 @@ let liveSyncedAchievements = [];
 // Fully automatic profile sync sources (edit these with your real profiles)
 const AUTO_SYNC_SOURCES = [
   { url: "https://leetcode.com/u/Aravindh2727/" },
-  // Add your HackerRank profile URL below when ready:
-  // { url: "https://www.hackerrank.com/your_username" },
-  // LinkedIn automatic certificate count is not reliable without OAuth partner APIs.
+  // Add more fixed sources here if needed.
 ];
 
 // Current selected filter (kept while live updates arrive)
@@ -137,6 +135,36 @@ function getMergedAchievements(baseData, syncedData) {
     }
   });
   return merged;
+}
+
+function isSyncableProfileLink(link) {
+  const value = String(link || "").toLowerCase();
+  return (
+    value.includes("leetcode.com") ||
+    value.includes("github.com") ||
+    value.includes("hackerrank.com") ||
+    value.includes("linkedin.com")
+  );
+}
+
+function getAutoSyncSources() {
+  const fixed = AUTO_SYNC_SOURCES
+    .map((item) => ({ url: String(item?.url || "").trim(), overrideCount: item?.overrideCount ?? null }))
+    .filter((item) => item.url);
+
+  const derived = allAchievements
+    .map((item) => String(item?.link || "").trim())
+    .filter((link) => link && isSyncableProfileLink(link))
+    .map((url) => ({ url, overrideCount: null }));
+
+  const unique = new Map();
+  [...fixed, ...derived].forEach((item) => {
+    if (!unique.has(item.url)) {
+      unique.set(item.url, item);
+    }
+  });
+
+  return Array.from(unique.values());
 }
 
 // Initialize Firebase app + Firestore
@@ -574,8 +602,9 @@ async function runAutoSync() {
     return;
   }
 
+  const syncSources = getAutoSyncSources();
   const syncedItems = [];
-  for (const source of AUTO_SYNC_SOURCES) {
+  for (const source of syncSources) {
     try {
       const items = await syncSource(source);
       syncedItems.push(...items);
